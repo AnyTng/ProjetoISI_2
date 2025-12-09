@@ -3,18 +3,26 @@ using Microsoft.EntityFrameworkCore;
 using SmartParking_Api.Data;
 using SmartParking_Api.Dtos;
 using SmartParking_Api.Models;
+using SmartParking_Api.Dtos;
+using SmartParking_Api.Services;
+
+
 
 namespace SmartParking_Api.Controllers;
+
+
 
 [ApiController]
 [Route("api/[controller]")]
 public class ParquesController : ControllerBase
 {
     private readonly SmartParkingDbContext _db;
-
-    public ParquesController(SmartParkingDbContext db)
+    private readonly IWeatherService _weather;
+    
+    public ParquesController(SmartParkingDbContext db, IWeatherService weather)
     {
         _db = db;
+        _weather = weather;
     }
 
     // GET: api/parques
@@ -70,56 +78,81 @@ public class ParquesController : ControllerBase
     }
 
     // GET: api/resumo
-    [HttpGet("resumo") ]
+    [HttpGet("resumo")]
     public async Task<ActionResult<IEnumerable<ParqueResumoDto>>> GetResumoParques()
     {
-        var resumo = await _db.Parques
+        var parques = await _db.Parques
+            .Include(p => p.Lugares)
             .AsNoTracking()
-            .Select(p => new ParqueResumoDto
-            {
-                ParqueId = p.Id,
-                Nome = p.Nome,
-                TotalLugares = p.Lugares.Count,
-                LugaresLivres = p.Lugares.Count(l => l.Estado == "Livre"),
-                LugaresOcupados = p.Lugares.Count(l => l.Estado == "Ocupado"),
-                LugaresIndisponiveis = p.Lugares.Count(l => l.Estado == "Indisponivel"),
-                TaxaOcupacao = p.Lugares.Count == 0 
-                ? 0 
-                : (double)p.Lugares.Count(l => l.Estado == "Ocupado") / p.Lugares.Count * 100.0
-
-            })
             .ToListAsync();
-            if (resumo.Count == 0) return NotFound();
-        
-        return Ok(resumo);
+
+        var lista = new List<ParqueResumoDto>();
+
+        foreach (var parque in parques)
+        {
+            WeatherInfoDto? meteo = null;
+            try
+            {
+                meteo = await _weather.GetCurrentWeatherAsync(parque.Latitude, parque.Longitude);
+            }
+            catch
+            {
+                // se falhar para este parque, segue sem meteo
+            }
+
+            lista.Add(CriarResumoParque(parque, meteo));
+        }
+
+        return Ok(lista);
     }
+
     
     //GET api/5/Resumo
     [HttpGet("{id:int}/resumo")]
     public async Task<ActionResult<ParqueResumoDto>> GetResumoParque(int id)
     {
-        var resumo = await _db.Parques
+        var parque = await _db.Parques
+            .Include(p => p.Lugares)
             .AsNoTracking()
-            .Where(p => p.Id == id)
-            .Select(p => new ParqueResumoDto
-            {
-                ParqueId = p.Id,
-                Nome = p.Nome,
-                TotalLugares = p.Lugares.Count,
-                LugaresLivres = p.Lugares.Count(l => l.Estado == "Livre"),
-                LugaresOcupados = p.Lugares.Count(l => l.Estado == "Ocupado"),
-                LugaresIndisponiveis = p.Lugares.Count(l => l.Estado == "Indisponivel"),
-                TaxaOcupacao = p.Lugares.Count == 0 
-                ? 0 
-                : (double)p.Lugares.Count(l => l.Estado == "Ocupado") / p.Lugares.Count * 100.0
+            .FirstOrDefaultAsync(p => p.Id == id);
 
-            })
-            .FirstOrDefaultAsync();
-        
-        if (resumo == null) return NotFound();
-            
-        return Ok(resumo);
-        
+        if (parque == null)
+            return NotFound();
+
+        WeatherInfoDto? meteo = null;
+        try
+        {
+            meteo = await _weather.GetCurrentWeatherAsync(parque.Latitude, parque.Longitude);
+        }
+        catch { /* log opcional */ }
+
+        var dto = CriarResumoParque(parque, meteo);
+        return Ok(dto);
     }
-    
+
+
+    private static ParqueResumoDto CriarResumoParque(Parque parque, WeatherInfoDto? meteo = null)
+    {
+        var total = parque.Lugares.Count;
+        var livres = parque.Lugares.Count(l => l.Estado == "Livre");
+        var ocupados = parque.Lugares.Count(l => l.Estado == "Ocupado");
+        var indisponiveis = parque.Lugares.Count(l => l.Estado == "Indisponivel");
+
+        var taxaOcupacao = total == 0
+            ? 0
+            : (double)ocupados / total * 100.0;
+
+        return new ParqueResumoDto
+        {
+            ParqueId = parque.Id,
+            Nome = parque.Nome,
+            TotalLugares = total,
+            LugaresLivres = livres,
+            LugaresOcupados = ocupados,
+            LugaresIndisponiveis = indisponiveis,
+            TaxaOcupacao = Math.Round(taxaOcupacao, 2),
+            Meteorologia = meteo
+        };
+    }
+
 }

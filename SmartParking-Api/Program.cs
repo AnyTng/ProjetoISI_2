@@ -1,26 +1,31 @@
 using Microsoft.EntityFrameworkCore;
+using SoapCore;
 using SmartParking_Api.Data;
-
+using SmartParking_Api.Services;
+using SmartParking_Api.Services.Soap;
 
 var builder = WebApplication.CreateBuilder(args);
+
 var connectionString = builder.Configuration.GetConnectionString("AzureBDConnection");
 
-
-// 1) Connection string vinda dos user-secrets
-
-
-// 2) DbContext com SQL Server
+// DbContext (Azure SQL)
 builder.Services.AddDbContext<SmartParkingDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 3) REST + Swagger
+// Weather (Open-Meteo)
+builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>();
+
+// SOAP
+builder.Services.AddSoapCore();
+builder.Services.AddScoped<ISmartParkingSoapService, SmartParkingSoapService>();
+
+// REST + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -29,6 +34,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
+// SOAP endpoint
+var routes = (IEndpointRouteBuilder)app;
+
+routes.UseSoapEndpoint<ISmartParkingSoapService>(
+    "/soap/smartparking.asmx",
+    new SoapEncoderOptions(),
+    SoapSerializer.XmlSerializer);
+
+// REST controllers
 app.MapControllers();
 
 app.Run();
