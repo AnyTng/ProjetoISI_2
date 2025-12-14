@@ -7,7 +7,7 @@ namespace SmartParking_Api.Services.Soap;
 [ServiceContract]
 public interface ISmartParkingSoapService
 {
-    // Resumo de um parque (com meteo)
+    // Resumo de um parque +  meteorologia
     [OperationContract]
     Task<ParqueResumoDto?> GetParqueResumoAsync(int parqueId);
 

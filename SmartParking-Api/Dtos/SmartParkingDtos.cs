@@ -20,4 +20,21 @@ public class WeatherInfoDto
     public double Humidade { get; set; }
 }
 
+public class ParqueDto {
+    public int Id { get; set; }
+    public string Nome { get; set; } = "";
+    public string Endereco { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public List<LugarDto> Lugares { get; set; } = [];
+}
+
+public class LugarDto {
+    public int Id { get; set; }
+    public string Codigo { get; set; } = "";
+    public string Estado { get; set; } = "";
+    public int ParqueId { get; set; }
+}
+
+
 

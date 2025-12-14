@@ -25,28 +25,34 @@ public class ParquesController : ControllerBase
         _weather = weather;
     }
 
-    // GET: api/parques
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Parque>>> GetParques()
-    {
-        var parques = await _db.Parques.AsNoTracking().ToListAsync();
-        return Ok(parques);
-    }
-
     // GET: api/parques/5
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Parque>> GetParque(int id)
+    public async Task<ActionResult<ParqueDto>> GetParque(int id)
     {
         var parque = await _db.Parques
             .Include(p => p.Lugares)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        if (parque == null)
-            return NotFound();
+        if (parque == null) return NotFound();
 
-        return Ok(parque);
+        var dto = new ParqueDto {
+            Id = parque.Id,
+            Nome = parque.Nome,
+            Endereco = parque.Endereco,
+            Latitude = parque.Latitude,
+            Longitude = parque.Longitude,
+            Lugares = parque.Lugares.Select(l => new LugarDto {
+                Id = l.Id,
+                ParqueId = l.ParqueId,
+                Codigo = l.Codigo,
+                Estado = l.Estado
+            }).ToList()
+        };
+
+        return Ok(dto);
     }
+
 
     // POST: api/parques
     [HttpPost]
@@ -85,6 +91,7 @@ public class ParquesController : ControllerBase
             .Include(p => p.Lugares)
             .AsNoTracking()
             .ToListAsync();
+        
 
         var lista = new List<ParqueResumoDto>();
 
