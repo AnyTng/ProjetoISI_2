@@ -1,0 +1,58 @@
+using System;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SmartParking_Api.Data;
+using SmartParking_Api.Models;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SmartParking_Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class SensoresController : ControllerBase
+{
+    private readonly SmartParkingDbContext _db;
+
+    public SensoresController(SmartParkingDbContext db) => _db = db;
+    
+    
+    public record CreateSensorRequest(string Nome, int LugarId);
+
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> Create(CreateSensorRequest req)
+    {
+        var apiKey = GenerateApiKey();
+        var hash = HashKey(apiKey);
+
+        var sensor = new Sensor
+        {
+            Nome = req.Nome,
+            LugarId = req.LugarId,
+            ApiKeyHash = hash
+        };
+
+
+        _db.Sensores.Add(sensor);
+        await _db.SaveChangesAsync();
+        
+        return Ok(new { sensor.Id, sensor.Nome, sensor.LugarId, apiKey });
+
+    }
+
+    private static string GenerateApiKey()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+    }
+
+    private static string HashKey(string key)
+    {
+        using var sha = SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(key));
+        return Convert.ToHexString(bytes);
+    }
+}

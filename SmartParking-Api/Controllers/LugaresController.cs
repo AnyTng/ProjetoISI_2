@@ -1,9 +1,16 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartParking_Api.Data;
 using SmartParking_Api.Models;
 
 namespace SmartParking_Api.Controllers;
+using Microsoft.AspNetCore.Authorization;
+using SmartParking_Api.Auth;
+
 
 [ApiController]
 [Route("api/[controller]")]
@@ -43,6 +50,7 @@ public class LugaresController : ControllerBase
     }
 
     // POST: api/lugares
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Lugar>> CreateLugar([FromBody] CreateLugarDto dto)
     {
@@ -66,9 +74,15 @@ public class LugaresController : ControllerBase
 
     // PUT: api/lugares/5/estado
     // body: { "estado": "Ocupado" }
+    [Authorize(AuthenticationSchemes = ApiKeyDefaults.SchemeName)]
     [HttpPut("{id:int}/estado")]
     public async Task<IActionResult> AtualizarEstado(int id, [FromBody] AtualizarEstadoLugarDto dto)
     {
+        
+        var lugarIdClaim = User.FindFirstValue("lugarId");
+        if (!int.TryParse(lugarIdClaim, out var sensorLugarId) || sensorLugarId != id)
+            return Forbid();
+        
         var lugar = await _db.Lugares.FirstOrDefaultAsync(l => l.Id == id);
         if (lugar == null)
             return NotFound();

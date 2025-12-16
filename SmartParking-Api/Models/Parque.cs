@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace SmartParking_Api.Models;
 
 public class Parque

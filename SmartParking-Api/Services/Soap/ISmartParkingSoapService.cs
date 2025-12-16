@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.ServiceModel;
+using System.Threading.Tasks;
 using SmartParking_Api.Dtos;
 using SmartParking_Api.Models;
 
