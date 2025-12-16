@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using SmartParking_Api.Data;
 using SmartParking_Api.Dtos;
 using SmartParking_Api.Models;
-using SmartParking_Api.Dtos;
 using SmartParking_Api.Services;
 
 
@@ -53,6 +52,24 @@ public class ParquesController : ControllerBase
         return Ok(dto);
     }
 
+
+    // Delete: api/Parques
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteParque(int id)
+    {
+        var parque = await _db.Parques
+            .Include(p => p.Lugares)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (parque == null)
+            return NotFound();
+
+        _db.Lugares.RemoveRange(parque.Lugares);
+        _db.Parques.Remove(parque);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 
     // POST: api/parques
     [HttpPost]

@@ -38,7 +38,7 @@ public class LugaresController : ControllerBase
             .Where(l => l.ParqueId == parqueId)
             .AsNoTracking()
             .ToListAsync();
-
+    
         return Ok(lugares);
     }
 
