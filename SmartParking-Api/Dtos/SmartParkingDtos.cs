@@ -38,5 +38,16 @@ public class LugarDto {
     public int ParqueId { get; set; }
 }
 
+public record StructuredGeocodeRequest(
+    string Street,
+    string? PostalCode,
+    string? City,
+    string? Country
+);
 
-
+public record GeocodeSuggestion(
+    string DisplayName,
+    double Lat,
+    double Lon,
+    string? PlaceId
+);

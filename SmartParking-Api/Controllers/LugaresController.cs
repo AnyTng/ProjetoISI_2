@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartParking_Api.Data;
@@ -74,7 +75,7 @@ public class LugaresController : ControllerBase
 
     // PUT: api/lugares/5/estado
     // body: { "estado": "Ocupado" }
-    [Authorize(AuthenticationSchemes = ApiKeyDefaults.SchemeName)]
+    [Authorize(AuthenticationSchemes = $"{ApiKeyDefaults.SchemeName},{JwtBearerDefaults.AuthenticationScheme}")]
     [HttpPut("{id:int}/estado")]
     public async Task<IActionResult> AtualizarEstado(int id, [FromBody] AtualizarEstadoLugarDto dto)
     {

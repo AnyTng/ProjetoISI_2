@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
-    public record RegisterRequest(string UserName, string Email, string Password, string? Nome);
+    public record RegisterRequest(string UserName, string Email, string Password);
     public record LoginRequest(string Email, string Password);
 
     [HttpPost("register")]
@@ -31,17 +31,22 @@ public class AuthController : ControllerBase
     {
         if (await _db.Users.AnyAsync(u => u.Email == req.Email))
             return BadRequest("Email já existe.");
-
-        if (await _db.Users.AnyAsync(u => u.UserName == req.UserName))
-            return BadRequest("UserName já existe.");
-
+        
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 6)
+            return BadRequest("A password deve ter pelo menos 6 caracteres.");
+        
+        // check for @ 
+        if (!req.Email.Contains("@"))
+            return BadRequest("O email deve conter um @.");
+            
         var user = new AppUser
         {
             UserName = req.UserName,
             Email = req.Email,
             Role = "User"
         };
-
+        
+        
         user.PasswordHash = _hasher.HashPassword(user, req.Password);
 
         _db.Users.Add(user);

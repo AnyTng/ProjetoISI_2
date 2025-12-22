@@ -36,6 +36,16 @@ builder.Services.AddDbContext<SmartParkingDbContext>(options =>
 // --------------------
 builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>();
 
+
+builder.Services.Configure<LocationIqOptions>(builder.Configuration.GetSection("LocationIQ"));
+
+builder.Services.AddHttpClient<IGeocodingService, LocationIqGeocodingService>((sp, http) =>
+{
+    var opt = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<LocationIqOptions>>().Value;
+    http.BaseAddress = new Uri(opt.BaseUrl);
+});
+
+
 // --------------------
 // SOAP
 // --------------------

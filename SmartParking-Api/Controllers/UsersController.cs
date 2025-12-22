@@ -24,7 +24,7 @@ public class UsersController : ControllerBase
 
         if (!int.TryParse(userIdStr, out var userId)) return Unauthorized();
 
-        // FindAsync é ideal para procurar por chave primária. :contentReference[oaicite:2]{index=2}
+        
         var user = await _db.Users.FindAsync(userId);
         if (user is null) return Unauthorized();
 

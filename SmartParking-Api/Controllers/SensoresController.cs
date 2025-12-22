@@ -6,6 +6,7 @@ using SmartParking_Api.Models;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartParking_Api.Controllers;
 
@@ -21,6 +22,19 @@ public class SensoresController : ControllerBase
     public record CreateSensorRequest(string Nome, int LugarId);
 
 
+    
+    [Authorize (Roles = "Admin")]
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var sensores = await _db.Sensores
+            .AsNoTracking()
+            .ToListAsync();
+        
+        return Ok(sensores);
+    }
+    
+    
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(CreateSensorRequest req)
@@ -42,7 +56,21 @@ public class SensoresController : ControllerBase
         return Ok(new { sensor.Id, sensor.Nome, sensor.LugarId, apiKey });
 
     }
-
+    
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:int}/regenerate-apikey")]
+    public async Task<IActionResult> RegenerateApiKey(int id)
+    {
+        var sensor = await _db.Sensores.FindAsync(id);
+        if (sensor == null) return NotFound();
+        
+        var apiKey = GenerateApiKey();
+        sensor.ApiKeyHash = HashKey(apiKey);
+        await _db.SaveChangesAsync();
+        
+        return Ok(new { sensor.Id, sensor.Nome, sensor.LugarId, apiKey });
+    }
+    
     private static string GenerateApiKey()
     {
         var bytes = RandomNumberGenerator.GetBytes(32);

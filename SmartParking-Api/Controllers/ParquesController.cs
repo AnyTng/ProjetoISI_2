@@ -2,15 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartParking_Api.Data;
 using SmartParking_Api.Dtos;
 using SmartParking_Api.Models;
 using SmartParking_Api.Services;
-
-
-
 namespace SmartParking_Api.Controllers;
 
 
@@ -58,6 +56,7 @@ public class ParquesController : ControllerBase
 
 
     // Delete: api/Parques
+    [Authorize (Roles = "Admin")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteParque(int id)
     {
@@ -76,6 +75,7 @@ public class ParquesController : ControllerBase
     }
 
     // POST: api/parques
+    [Authorize (Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Parque>> CreateParque([FromBody] Parque parque)
     {
@@ -157,7 +157,7 @@ public class ParquesController : ControllerBase
         var dto = CriarResumoParque(parque, meteo);
         return Ok(dto);
     }
-
+    
 
     private static ParqueResumoDto CriarResumoParque(Parque parque, WeatherInfoDto? meteo = null)
     {
