@@ -19,7 +19,7 @@ public class SensoresController : ControllerBase
     public SensoresController(SmartParkingDbContext db) => _db = db;
     
     
-    public record CreateSensorRequest(string Nome, int LugarId);
+    public record CreateSensorRequest(int LugarId);
 
 
     
@@ -39,12 +39,15 @@ public class SensoresController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateSensorRequest req)
     {
+        var lugarExiste = await _db.Lugares.AnyAsync(l => l.Id == req.LugarId);
+        if (!lugarExiste)
+            return BadRequest($"Lugar {req.LugarId} não existe.");
+
         var apiKey = GenerateApiKey();
         var hash = HashKey(apiKey);
 
         var sensor = new Sensor
         {
-            Nome = req.Nome,
             LugarId = req.LugarId,
             ApiKeyHash = hash
         };
@@ -53,8 +56,22 @@ public class SensoresController : ControllerBase
         _db.Sensores.Add(sensor);
         await _db.SaveChangesAsync();
         
-        return Ok(new { sensor.Id, sensor.Nome, sensor.LugarId, apiKey });
+        return Ok(new { sensor.Id, sensor.LugarId, apiKey });
 
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var sensor = await _db.Sensores.FindAsync(id);
+        if (sensor == null)
+            return BadRequest($"Sensor {id} não encontrado");
+
+        _db.Sensores.Remove(sensor);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
     }
     
     [Authorize(Roles = "Admin")]
@@ -62,13 +79,14 @@ public class SensoresController : ControllerBase
     public async Task<IActionResult> RegenerateApiKey(int id)
     {
         var sensor = await _db.Sensores.FindAsync(id);
-        if (sensor == null) return NotFound();
+        if (sensor == null) 
+            return BadRequest($"Sensor {id} não existe.");
         
         var apiKey = GenerateApiKey();
         sensor.ApiKeyHash = HashKey(apiKey);
         await _db.SaveChangesAsync();
         
-        return Ok(new { sensor.Id, sensor.Nome, sensor.LugarId, apiKey });
+        return Ok(new { sensor.Id, sensor.LugarId, apiKey });
     }
     
     private static string GenerateApiKey()

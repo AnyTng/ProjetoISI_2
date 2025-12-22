@@ -42,13 +42,18 @@ public class SmartParkingSoapService : ISmartParkingSoapService
             : (double)ocupados / total * 100.0;
 
         WeatherInfoDto? meteo = null;
-        try
+        if (parque.Latitude.HasValue && parque.Longitude.HasValue)
         {
-            meteo = await _weather.GetCurrentWeatherAsync(parque.Latitude, parque.Longitude);
-        }
-        catch
-        {
-            // não rebentar o serviço se a API externa falhar
+            try
+            {
+                meteo = await _weather.GetCurrentWeatherAsync(
+                    parque.Latitude.Value,
+                    parque.Longitude.Value);
+            }
+            catch
+            {
+                // não rebentar o serviço se a API externa falhar
+            }
         }
 
         return new ParqueResumoDto

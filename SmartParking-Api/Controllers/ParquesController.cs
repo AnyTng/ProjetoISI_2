@@ -46,7 +46,6 @@ public class ParquesController : ControllerBase
             Lugares = parque.Lugares.Select(l => new LugarDto {
                 Id = l.Id,
                 ParqueId = l.ParqueId,
-                Codigo = l.Codigo,
                 Estado = l.Estado
             }).ToList()
         };
@@ -67,6 +66,15 @@ public class ParquesController : ControllerBase
         if (parque == null)
             return NotFound();
 
+        var lugarIds = parque.Lugares.Select(l => l.Id).ToList();
+        if (lugarIds.Count > 0)
+        {
+            var sensores = await _db.Sensores
+                .Where(s => lugarIds.Contains(s.LugarId))
+                .ToListAsync();
+            _db.Sensores.RemoveRange(sensores);
+        }
+
         _db.Lugares.RemoveRange(parque.Lugares);
         _db.Parques.Remove(parque);
         await _db.SaveChangesAsync();
@@ -77,10 +85,18 @@ public class ParquesController : ControllerBase
     // POST: api/parques
     [Authorize (Roles = "Admin")]
     [HttpPost]
-    public async Task<ActionResult<Parque>> CreateParque([FromBody] Parque parque)
+    public async Task<ActionResult<Parque>> CreateParque([FromBody] CreateParqueRequest req)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
+
+        var parque = new Parque
+        {
+            Nome = req.Nome,
+            Endereco = req.Endereco,
+            Latitude = req.Latitude,
+            Longitude = req.Longitude
+        };
 
         _db.Parques.Add(parque);
         await _db.SaveChangesAsync();
@@ -119,13 +135,18 @@ public class ParquesController : ControllerBase
         foreach (var parque in parques)
         {
             WeatherInfoDto? meteo = null;
-            try
+            if (parque.Latitude.HasValue && parque.Longitude.HasValue)
             {
-                meteo = await _weather.GetCurrentWeatherAsync(parque.Latitude, parque.Longitude);
-            }
-            catch
-            {
-                // se falhar para este parque, segue sem meteo
+                try
+                {
+                    meteo = await _weather.GetCurrentWeatherAsync(
+                        parque.Latitude.Value,
+                        parque.Longitude.Value);
+                }
+                catch
+                {
+                    // se falhar para este parque, segue sem meteo
+                }
             }
 
             lista.Add(CriarResumoParque(parque, meteo));
@@ -148,11 +169,16 @@ public class ParquesController : ControllerBase
             return NotFound();
 
         WeatherInfoDto? meteo = null;
-        try
+        if (parque.Latitude.HasValue && parque.Longitude.HasValue)
         {
-            meteo = await _weather.GetCurrentWeatherAsync(parque.Latitude, parque.Longitude);
+            try
+            {
+                meteo = await _weather.GetCurrentWeatherAsync(
+                    parque.Latitude.Value,
+                    parque.Longitude.Value);
+            }
+            catch { /* log opcional */ }
         }
-        catch { /* log opcional */ }
 
         var dto = CriarResumoParque(parque, meteo);
         return Ok(dto);

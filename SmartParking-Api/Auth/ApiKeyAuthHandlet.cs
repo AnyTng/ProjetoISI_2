@@ -51,7 +51,6 @@ public class ApiKeyAuthHandler : AuthenticationHandler<AuthenticationSchemeOptio
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, sensor.Id.ToString()),
-            new(ClaimTypes.Name, sensor.Nome),
             new(ClaimTypes.Role, "Sensor"),
         };
 

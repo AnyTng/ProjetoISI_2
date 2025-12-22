@@ -39,13 +39,7 @@ public class SmartParkingDbContext : DbContext
         modelBuilder.Entity<Lugar>(entity =>
         {
             entity.ToTable("Lugares");
-            entity.Property(l => l.Codigo).IsRequired().HasMaxLength(50);
             entity.Property(l => l.Estado).IsRequired().HasMaxLength(20);
-
-            entity.HasOne(l => l.Parque)
-                .WithMany(p => p.Lugares)
-                .HasForeignKey(l => l.ParqueId)
-                .OnDelete(DeleteBehavior.Cascade);
             
         });
         modelBuilder.Entity<Sensor>(e =>
